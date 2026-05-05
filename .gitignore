@@ -28,9 +28,7 @@ logs/
 Thumbs.db
 
 # --- Secrets ---
-# Ignore everything under secrets/ except the templates and READMEs.
-secrets/**
-!secrets/README.md
-!secrets/*/
-!secrets/**/*.example
-!secrets/**/*.README
+# Local-dev secret files in secrets/ are committed (placeholder values, not
+# real credentials). The only thing that must NOT be committed is the actual
+# session certificate.
+secrets/**/SessionCertificate.pfx

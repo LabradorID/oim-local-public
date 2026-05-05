@@ -7,9 +7,17 @@ into those containers:
 - `secrets/appserver/` → mounted into `oim-appserver:/run/secrets`
 - `secrets/apiserver/` → mounted into `oim-apiserver:/run/secrets`
 
-This repository ships **only `.example` template files**. Before you start the
-ready environment, copy each `*.example` to its real name (without the suffix)
-and fill in real values.
+For convenience this repository ships **ready-to-use secret files for a local
+Docker environment**. The committed values are placeholder credentials that
+match the defaults in `.env.example` (`MSSQL_SA_PASSWORD=ChangeMe_Strong1`,
+etc.) so the stack starts without any manual editing.
+
+> **Do not reuse these values for anything internet-facing.** They are
+> committed in plain text to a public repository. For any non-local deployment,
+> replace them with real secrets and keep them out of git.
+
+The only file you still have to provide yourself is `SessionCertificate.pfx`
+(see below) — it is git-ignored.
 
 ## App Server (`secrets/appserver/`)
 
@@ -86,5 +94,12 @@ docker exec oim-apiserver grep AppServerConnection /var/www/web.config
 
 ## Git hygiene
 
-`.gitignore` excludes the actual secret files (everything in `secrets/` except
-the `.example` and `.README` templates). Do not remove those rules.
+The secret files in this directory are committed because their values are
+local-dev placeholders, not real credentials. `.gitignore` only excludes the
+session certificate (`SessionCertificate.pfx`) — never commit a real one.
+
+If you change a value to something genuinely sensitive, either:
+
+- add the file to `.gitignore` before committing, or
+- store the real value in `.env` (which is git-ignored) and reference it from
+  here.

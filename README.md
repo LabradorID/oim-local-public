@@ -143,18 +143,24 @@ Goal: start the full OIM stack against the image you just built.
 default. If you used a different tag or registry, edit the `image:` field of
 the `mssql` service before continuing.
 
-Set up the secret files first (see [`secrets/README.md`](secrets/README.md)):
+The secret files under `secrets/apiserver/` and `secrets/appserver/` are
+committed with ready-to-use **local-dev** values that match the defaults in
+`.env.example`. The only thing you still have to provide yourself is the
+session certificate:
 
 ```bash
-cd secrets/apiserver
-for f in *.example; do cp "$f" "${f%.example}"; done
-# create SessionCertificate.pfx (see secrets/README.md)
-$EDITOR APPSERVERCONNSTRING                 # set Url=http://<HOST_IP>:8080/
-cd ../appserver
-for f in *.example; do cp "$f" "${f%.example}"; done
-# copy or generate SessionCertificate.pfx here too
-cd ../..
+# Generate a self-signed certificate and drop it into both folders.
+openssl req -x509 -newkey rsa:2048 -keyout /tmp/key.pem -out /tmp/cert.pem \
+    -days 3650 -nodes -subj "/CN=oim-apiserver"
+openssl pkcs12 -export -out secrets/apiserver/SessionCertificate.pfx \
+    -inkey /tmp/key.pem -in /tmp/cert.pem -passout pass:
+cp secrets/apiserver/SessionCertificate.pfx secrets/appserver/SessionCertificate.pfx
 ```
+
+If you connect from a different host (e.g. Windows talking to a WSL host),
+edit `secrets/apiserver/APPSERVERCONNSTRING` so the `Url=` value matches the
+host IP that the portal session uses (see
+[`secrets/README.md`](secrets/README.md) for details).
 
 Then bring it up:
 
@@ -231,7 +237,7 @@ ready environment can address them by hostname (`scimserver`, `ldapserver`,
 | `seed-scim.py`, `scim-seed-data.json`   | SCIM seed tool + bundled test data.                   |
 | `scim2-postman-collection.json`         | Postman collection for the SCIM server.               |
 | `ldap-seed-data*.ldif`                  | LDIF seed data for the two LDAP directories.          |
-| `secrets/`                              | Templates for App/API Server secrets — see its README.|
+| `secrets/`                              | App/API Server secret files (local-dev values) — see its README. |
 | `.env.example`                          | Copy to `.env` and edit before you start anything.    |
 | `Makefile`                              | All targets above; run `make help` for the full list. |
 
