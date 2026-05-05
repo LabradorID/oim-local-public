@@ -1,0 +1,133 @@
+{
+  "users": [
+    {
+      "userName": "anna.mueller",
+      "givenName": "Anna",
+      "middleName": "Elisabeth",
+      "familyName": "Mueller",
+      "email": "anna.mueller@example.com",
+      "department": "Human Resources",
+      "title": "HR Manager",
+      "employeeNumber": "EMP-001",
+      "entryDate": "2023-01-15",
+      "exitDate": null
+    },
+    {
+      "userName": "thomas.schmidt",
+      "givenName": "Thomas",
+      "familyName": "Schmidt",
+      "email": "thomas.schmidt@example.com",
+      "department": "Engineering",
+      "title": "Senior Developer",
+      "employeeNumber": "EMP-002",
+      "entryDate": "2022-06-01",
+      "exitDate": null
+    },
+    {
+      "userName": "maria.weber",
+      "givenName": "Maria",
+      "middleName": "Christina",
+      "familyName": "Weber",
+      "email": "maria.weber@example.com",
+      "department": "Finance",
+      "title": "Financial Analyst",
+      "employeeNumber": "EMP-003",
+      "entryDate": "2024-03-10",
+      "exitDate": "2026-06-30"
+    },
+    {
+      "userName": "stefan.fischer",
+      "givenName": "Stefan",
+      "familyName": "Fischer",
+      "email": "stefan.fischer@example.com",
+      "department": "Engineering",
+      "title": "DevOps Engineer",
+      "employeeNumber": "EMP-004",
+      "entryDate": "2021-09-01",
+      "exitDate": null
+    },
+    {
+      "userName": "julia.becker",
+      "givenName": "Julia",
+      "middleName": "Marie",
+      "familyName": "Becker",
+      "email": "julia.becker@example.com",
+      "department": "Marketing",
+      "title": "Marketing Specialist",
+      "employeeNumber": "EMP-005",
+      "entryDate": "2023-08-15",
+      "exitDate": null
+    },
+    {
+      "userName": "michael.braun",
+      "givenName": "Michael",
+      "familyName": "Braun",
+      "email": "michael.braun@example.com",
+      "department": "Sales",
+      "title": "Account Executive",
+      "employeeNumber": "EMP-006",
+      "entryDate": "2020-02-01",
+      "exitDate": "2026-12-31"
+    },
+    {
+      "userName": "sandra.hoffmann",
+      "givenName": "Sandra",
+      "middleName": "Kathrin",
+      "familyName": "Hoffmann",
+      "email": "sandra.hoffmann@example.com",
+      "department": "Engineering",
+      "title": "Software Architect",
+      "employeeNumber": "EMP-007",
+      "entryDate": "2024-01-02",
+      "exitDate": null
+    },
+    {
+      "userName": "andreas.wagner",
+      "givenName": "Andreas",
+      "familyName": "Wagner",
+      "email": "andreas.wagner@example.com",
+      "department": "IT Operations",
+      "title": "System Administrator",
+      "employeeNumber": "EMP-008",
+      "entryDate": "2022-11-15",
+      "exitDate": null
+    },
+    {
+      "userName": "katharina.schulz",
+      "givenName": "Katharina",
+      "middleName": "Sophie",
+      "familyName": "Schulz",
+      "email": "katharina.schulz@example.com",
+      "department": "Legal",
+      "title": "Legal Counsel",
+      "employeeNumber": "EMP-009",
+      "entryDate": "2023-05-01",
+      "exitDate": "2026-03-31"
+    },
+    {
+      "userName": "peter.klein",
+      "givenName": "Peter",
+      "familyName": "Klein",
+      "email": "peter.klein@example.com",
+      "department": "Finance",
+      "title": "Controller",
+      "employeeNumber": "EMP-010",
+      "entryDate": "2025-01-10",
+      "exitDate": null
+    }
+  ],
+  "groups": [
+    {
+      "displayName": "Engineering",
+      "members": ["thomas.schmidt", "stefan.fischer", "sandra.hoffmann"]
+    },
+    {
+      "displayName": "Finance",
+      "members": ["maria.weber", "peter.klein"]
+    },
+    {
+      "displayName": "All Employees",
+      "members": ["anna.mueller", "thomas.schmidt", "maria.weber", "stefan.fischer", "julia.becker", "michael.braun", "sandra.hoffmann", "andreas.wagner", "katharina.schulz", "peter.klein"]
+    }
+  ]
+}

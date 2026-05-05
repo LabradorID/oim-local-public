@@ -1,0 +1,96 @@
+services:
+  scimserver:
+    build:
+      context: .
+      dockerfile: Dockerfile.scim
+    container_name: oim-scimserver
+    hostname: scimserver
+    ports:
+      - "8585:8080"
+    command:
+      - "--hostname"
+      - "0.0.0.0"
+      - "--port"
+      - "8080"
+      - "--bearer-token"
+      - "${SCIM_BEARER_TOKEN:-scim-dev-token}"
+    networks:
+      - oim-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/ServiceProviderConfig')"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  scim-init:
+    image: python:3.13-slim
+    container_name: oim-scim-init
+    volumes:
+      - ./seed-scim.py:/seed-scim.py:ro
+      - ./scim-seed-data.json:/scim-seed-data.json:ro
+    entrypoint: ["python3", "/seed-scim.py"]
+    command: ["--url", "http://scimserver:8080", "--token", "${SCIM_BEARER_TOKEN:-scim-dev-token}", "--clear"]
+    networks:
+      - oim-network
+    depends_on:
+      scimserver:
+        condition: service_healthy
+
+  ldapserver:
+    image: osixia/openldap:1.5.0
+    container_name: oim-ldapserver
+    hostname: ldapserver
+    ports:
+      - "1389:389"
+      - "1636:636"
+    environment:
+      - LDAP_ORGANISATION=Example Inc.
+      - LDAP_DOMAIN=example.com
+      - LDAP_ADMIN_PASSWORD=${LDAP_ADMIN_PASSWORD:-Password123}
+      - LDAP_READONLY_USER=true
+      - LDAP_READONLY_USER_USERNAME=readonly
+      - LDAP_READONLY_USER_PASSWORD=readonly123
+    volumes:
+      - ./ldap-seed-data.ldif:/container/service/slapd/assets/config/bootstrap/ldif/custom/seed-data.ldif:ro
+      - ldap-data:/var/lib/ldap
+      - ldap-config:/etc/ldap/slapd.d
+    command: "--copy-service"
+    networks:
+      - oim-network
+    restart: unless-stopped
+
+  ldapserver2:
+    image: osixia/openldap:1.5.0
+    container_name: oim-ldapserver2
+    hostname: ldapserver2
+    ports:
+      - "2389:389"
+      - "2636:636"
+    environment:
+      - LDAP_ORGANISATION=Partner GmbH
+      - LDAP_DOMAIN=partner.com
+      - LDAP_ADMIN_PASSWORD=${LDAP_ADMIN_PASSWORD:-Password123}
+      - LDAP_READONLY_USER=true
+      - LDAP_READONLY_USER_USERNAME=readonly
+      - LDAP_READONLY_USER_PASSWORD=readonly123
+    volumes:
+      - ./ldap-seed-data-partner.ldif:/container/service/slapd/assets/config/bootstrap/ldif/custom/seed-data.ldif:ro
+      - ldap-data2:/var/lib/ldap
+      - ldap-config2:/etc/ldap/slapd.d
+    command: "--copy-service"
+    networks:
+      - oim-network
+    restart: unless-stopped
+
+networks:
+  oim-network:
+    external: true
+    name: oim-network
+
+volumes:
+  ldap-data:
+  ldap-config:
+  ldap-data2:
+  ldap-config2:

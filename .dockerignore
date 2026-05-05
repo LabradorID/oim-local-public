@@ -1,0 +1,17 @@
+# Git
+.git
+.gitignore
+
+# Local env
+.env
+.env.local
+
+# Backups (only ship .bak files when explicitly needed)
+backups/*.tmp
+
+# Temp / logs
+*.tmp
+*.log
+
+# Keep README in build context
+!README.md

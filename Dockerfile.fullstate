@@ -1,0 +1,14 @@
+FROM mcr.microsoft.com/mssql/server:2022-latest
+
+USER root
+
+# Copy the entire SQL Server state (includes master, model, msdb, OneIM databases)
+COPY mssql-state/ /var/opt/mssql/
+
+# Set proper ownership for mssql user
+RUN chown -R mssql:root /var/opt/mssql
+
+USER mssql
+
+# Use the default SQL Server entrypoint - no restore needed!
+# The databases are already in place

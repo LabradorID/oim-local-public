@@ -1,0 +1,152 @@
+services:
+  mssql:
+    image: localhost:5000/oim10-mssql-ready:v01  # Use local registry image
+    container_name: oim10-mssql-ready
+    hostname: mssql
+    ports:
+      - "1433:1433"
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=${MSSQL_SA_PASSWORD:-LocalPassword123}
+      - MSSQL_PID=Developer
+    networks:
+      - oim-network
+    restart: unless-stopped
+    healthcheck:
+      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$${MSSQL_SA_PASSWORD}" -C -Q "SELECT 1" || exit 1
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  oim-init:
+    image: mcr.microsoft.com/mssql-tools:latest
+    container_name: oim-init
+    volumes:
+      - ./oim-defaults.sql:/oim-defaults.sql:ro
+    environment:
+      - MSSQL_SA_PASSWORD=${MSSQL_SA_PASSWORD:-LocalPassword123}
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        echo "Waiting for OneIM database to be ready..."
+        for i in {1..30}; do
+          /opt/mssql-tools/bin/sqlcmd -S mssql -U sa -P "$$MSSQL_SA_PASSWORD" -C -Q "USE OneIM; SELECT TOP 1 1 FROM DialogConfigParm" > /dev/null 2>&1 && break
+          echo "Attempt $$i/30: OneIM database not ready yet, waiting 5s..."
+          sleep 5
+        done
+        echo "Running OIM initialization script..."
+        /opt/mssql-tools/bin/sqlcmd -S mssql -U sa -P "$$MSSQL_SA_PASSWORD" -C -i /oim-defaults.sql
+        echo "OIM initialization complete."
+    networks:
+      - oim-network
+    depends_on:
+      mssql:
+        condition: service_healthy
+
+  dbagent:
+    image: oneidentity/oneim-dbagent:latest
+    container_name: oim-dbagent
+    environment:
+      - CONNSTRING=Data Source=mssql;Initial Catalog=OneIM;User ID=sa;Password=${MSSQL_SA_PASSWORD:-LocalPassword123};TrustServerCertificate=True
+      - CONSOLE_LOGLEVEL=Info
+    networks:
+      - oim-network
+    depends_on:
+      mssql:
+        condition: service_healthy
+      oim-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  jobserver:
+    image: oneidentity/oneim-job:latest
+    container_name: oim-jobserver
+    ports:
+      - "1880:1880"
+    environment:
+      - CONNSTRING=Data Source=mssql;Initial Catalog=OneIM;User ID=sa;Password=${MSSQL_SA_PASSWORD:-LocalPassword123};TrustServerCertificate=True
+      - CONSOLE_LOGLEVEL=Info
+      - SERVERNAME=DockerServer2
+      - QUEUE=\mssql
+      - HTTP_USER=${JOBSERVER_HTTP_USER:-admin}
+      - HTTP_PWD=${JOBSERVER_HTTP_PWD:-Password123}
+      - REQUESTINTERVAL=15
+    networks:
+      - oim-network
+    depends_on:
+      mssql:
+        condition: service_healthy
+      oim-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  syncserver:
+    image: oneidentity/oneim-job:latest
+    container_name: oim-syncserver
+    ports:
+      - "1881:1880"
+    environment:
+      - CONNSTRING=Data Source=mssql;Initial Catalog=OneIM;User ID=sa;Password=${MSSQL_SA_PASSWORD:-LocalPassword123};TrustServerCertificate=True
+      - CONSOLE_LOGLEVEL=Info
+      - SERVERNAME=SyncServer1
+      - QUEUE=\SYNCSERVER1
+      - HTTP_USER=${JOBSERVER_HTTP_USER:-admin}
+      - HTTP_PWD=${JOBSERVER_HTTP_PWD:-Password123}
+      - REQUESTINTERVAL=15
+    networks:
+      - oim-network
+    depends_on:
+      mssql:
+        condition: service_healthy
+      oim-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  appserver:
+    image: oneidentity/oneim-appserver:linux-amd64-10.0
+    container_name: oim-appserver
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./secrets/appserver:/run/secrets
+    environment:
+      - CONSOLE_LOGLEVEL=Info
+      - ENABLE_RESTAPI=true
+      - ENABLE_APPSERVERAPI=true
+      - ENABLE_LOGVIEWER=true
+    networks:
+      - oim-network
+    depends_on:
+      mssql:
+        condition: service_healthy
+      oim-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  apiserver:
+    image: oneidentity/oneim-api:linux-amd64-10.0
+    container_name: oim-apiserver
+    ports:
+      - "8182:8080"
+    volumes:
+      - ./secrets/apiserver:/run/secrets
+    environment:
+      - CONSOLE_LOGLEVEL=Info
+      #- BASEURL=http://localhost:8182/
+      #- APPSERVERCONNSTRING=Url=http://appserver:8080/
+    networks:
+      - oim-network
+    depends_on:
+      mssql:
+        condition: service_healthy
+      appserver:
+        condition: service_started
+      oim-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+networks:
+  oim-network:
+    driver: bridge
+    name: oim-network

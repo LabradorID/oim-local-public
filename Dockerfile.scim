@@ -1,0 +1,8 @@
+FROM python:3.13-slim
+
+RUN pip install --no-cache-dir scim2-server
+
+EXPOSE 8080
+
+ENTRYPOINT ["scim2-server"]
+CMD ["--hostname", "0.0.0.0", "--port", "8080"]

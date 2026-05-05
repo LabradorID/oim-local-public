@@ -1,0 +1,516 @@
+{
+  "info": {
+    "name": "SCIM 2.0 Server - OIM Dev Environment",
+    "description": "SCIM 2.0 API collection for the scim2-server running in the OIM Docker environment.\n\nBase URL: http://{{host}}:{{port}}\nAuth: Bearer token",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{bearer_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "host",
+      "value": "localhost",
+      "description": "SCIM server host (use WSL IP for Windows access)"
+    },
+    {
+      "key": "port",
+      "value": "8585",
+      "description": "SCIM server port"
+    },
+    {
+      "key": "bearer_token",
+      "value": "scim-dev-token",
+      "description": "Bearer token for authentication"
+    },
+    {
+      "key": "baseUrl",
+      "value": "http://{{host}}:{{port}}"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "description": "Set automatically after creating a user"
+    },
+    {
+      "key": "groupId",
+      "value": "",
+      "description": "Set automatically after creating a group"
+    }
+  ],
+  "item": [
+    {
+      "name": "Discovery",
+      "description": "SCIM 2.0 discovery endpoints (RFC 7644 Section 4)",
+      "item": [
+        {
+          "name": "Get Service Provider Config",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/ServiceProviderConfig",
+            "description": "Returns the SCIM service provider's configuration, including supported features like filtering, sorting, and patch operations."
+          }
+        },
+        {
+          "name": "Get Schemas",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/Schemas",
+            "description": "Returns all supported SCIM schemas (User, Group, Enterprise User, etc.)."
+          }
+        },
+        {
+          "name": "Get User Schema",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/Schemas/urn:ietf:params:scim:schemas:core:2.0:User",
+            "description": "Returns the SCIM User schema definition with all attributes."
+          }
+        },
+        {
+          "name": "Get Group Schema",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/Schemas/urn:ietf:params:scim:schemas:core:2.0:Group",
+            "description": "Returns the SCIM Group schema definition."
+          }
+        },
+        {
+          "name": "Get Resource Types",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/ResourceTypes",
+            "description": "Returns the types of resources available (User, Group)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "description": "SCIM 2.0 User resource operations (RFC 7644 Section 3)",
+      "item": [
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/Users",
+            "description": "Retrieve all users."
+          }
+        },
+        {
+          "name": "List Users (with filter)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/Users?filter=userName eq \"john\"",
+              "host": ["{{baseUrl}}"],
+              "path": ["Users"],
+              "query": [
+                {
+                  "key": "filter",
+                  "value": "userName eq \"john\"",
+                  "description": "SCIM filter expression (RFC 7644 Section 3.4.2.2)"
+                }
+              ]
+            },
+            "description": "Retrieve users matching a filter. Examples:\n- userName eq \"john\"\n- displayName co \"Smith\"\n- emails.value eq \"user@example.com\"\n- active eq true"
+          }
+        },
+        {
+          "name": "List Users (paginated)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/Users?startIndex=1&count=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["Users"],
+              "query": [
+                {
+                  "key": "startIndex",
+                  "value": "1",
+                  "description": "1-based index of the first result"
+                },
+                {
+                  "key": "count",
+                  "value": "10",
+                  "description": "Number of results per page"
+                }
+              ]
+            },
+            "description": "Retrieve users with pagination."
+          }
+        },
+        {
+          "name": "List Users (sorted)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/Users?sortBy=userName&sortOrder=ascending",
+              "host": ["{{baseUrl}}"],
+              "path": ["Users"],
+              "query": [
+                {
+                  "key": "sortBy",
+                  "value": "userName"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "ascending",
+                  "description": "ascending or descending"
+                }
+              ]
+            },
+            "description": "Retrieve users sorted by a given attribute."
+          }
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/Users/{{userId}}",
+            "description": "Retrieve a single user by their SCIM ID."
+          }
+        },
+        {
+          "name": "Create User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('userId', jsonData.id);",
+                  "    console.log('Saved userId: ' + jsonData.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/Users",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/scim+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"schemas\": [\"urn:ietf:params:scim:schemas:core:2.0:User\"],\n  \"userName\": \"jdoe\",\n  \"name\": {\n    \"givenName\": \"John\",\n    \"familyName\": \"Doe\",\n    \"formatted\": \"John Doe\"\n  },\n  \"displayName\": \"John Doe\",\n  \"emails\": [\n    {\n      \"value\": \"john.doe@example.com\",\n      \"type\": \"work\",\n      \"primary\": true\n    }\n  ],\n  \"active\": true\n}"
+            },
+            "description": "Create a new user. The response ID is automatically saved to the {{userId}} variable."
+          }
+        },
+        {
+          "name": "Create User (Enterprise)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('userId', jsonData.id);",
+                  "    console.log('Saved userId: ' + jsonData.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/Users",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/scim+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"schemas\": [\n    \"urn:ietf:params:scim:schemas:core:2.0:User\",\n    \"urn:ietf:params:scim:schemas:extension:enterprise:2.0:User\"\n  ],\n  \"userName\": \"jsmith\",\n  \"name\": {\n    \"givenName\": \"Jane\",\n    \"familyName\": \"Smith\",\n    \"formatted\": \"Jane Smith\"\n  },\n  \"displayName\": \"Jane Smith\",\n  \"emails\": [\n    {\n      \"value\": \"jane.smith@example.com\",\n      \"type\": \"work\",\n      \"primary\": true\n    }\n  ],\n  \"phoneNumbers\": [\n    {\n      \"value\": \"+1-555-0100\",\n      \"type\": \"work\"\n    }\n  ],\n  \"active\": true,\n  \"urn:ietf:params:scim:schemas:extension:enterprise:2.0:User\": {\n    \"employeeNumber\": \"EMP-001\",\n    \"department\": \"Engineering\",\n    \"manager\": {\n      \"value\": \"mgr-001\",\n      \"displayName\": \"Bob Manager\"\n    }\n  }\n}"
+            },
+            "description": "Create a user with Enterprise User extension attributes (department, manager, employeeNumber)."
+          }
+        },
+        {
+          "name": "Replace User (PUT)",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/Users/{{userId}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/scim+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"schemas\": [\"urn:ietf:params:scim:schemas:core:2.0:User\"],\n  \"userName\": \"jdoe\",\n  \"name\": {\n    \"givenName\": \"John\",\n    \"familyName\": \"Doe-Updated\",\n    \"formatted\": \"John Doe-Updated\"\n  },\n  \"displayName\": \"John Doe-Updated\",\n  \"emails\": [\n    {\n      \"value\": \"john.doe.updated@example.com\",\n      \"type\": \"work\",\n      \"primary\": true\n    }\n  ],\n  \"active\": true\n}"
+            },
+            "description": "Full replacement of a user resource."
+          }
+        },
+        {
+          "name": "Patch User (update attribute)",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/Users/{{userId}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/scim+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"schemas\": [\"urn:ietf:params:scim:api:messages:2.0:PatchOp\"],\n  \"Operations\": [\n    {\n      \"op\": \"replace\",\n      \"path\": \"displayName\",\n      \"value\": \"John D. Doe\"\n    }\n  ]\n}"
+            },
+            "description": "Partially update a user using SCIM PATCH. Supports op: add, remove, replace."
+          }
+        },
+        {
+          "name": "Patch User (disable)",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/Users/{{userId}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/scim+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"schemas\": [\"urn:ietf:params:scim:api:messages:2.0:PatchOp\"],\n  \"Operations\": [\n    {\n      \"op\": \"replace\",\n      \"path\": \"active\",\n      \"value\": false\n    }\n  ]\n}"
+            },
+            "description": "Disable a user by setting active to false (common identity lifecycle operation)."
+          }
+        },
+        {
+          "name": "Patch User (add email)",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/Users/{{userId}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/scim+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"schemas\": [\"urn:ietf:params:scim:api:messages:2.0:PatchOp\"],\n  \"Operations\": [\n    {\n      \"op\": \"add\",\n      \"path\": \"emails\",\n      \"value\": [\n        {\n          \"value\": \"john.personal@example.com\",\n          \"type\": \"home\"\n        }\n      ]\n    }\n  ]\n}"
+            },
+            "description": "Add a new email to an existing user via PATCH add operation."
+          }
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/Users/{{userId}}",
+            "description": "Delete a user by their SCIM ID."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Groups",
+      "description": "SCIM 2.0 Group resource operations (RFC 7644 Section 3)",
+      "item": [
+        {
+          "name": "List Groups",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/Groups",
+            "description": "Retrieve all groups."
+          }
+        },
+        {
+          "name": "List Groups (with filter)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/Groups?filter=displayName eq \"Engineering\"",
+              "host": ["{{baseUrl}}"],
+              "path": ["Groups"],
+              "query": [
+                {
+                  "key": "filter",
+                  "value": "displayName eq \"Engineering\""
+                }
+              ]
+            },
+            "description": "Retrieve groups matching a filter."
+          }
+        },
+        {
+          "name": "Get Group by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/Groups/{{groupId}}",
+            "description": "Retrieve a single group by its SCIM ID."
+          }
+        },
+        {
+          "name": "Create Group",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('groupId', jsonData.id);",
+                  "    console.log('Saved groupId: ' + jsonData.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/Groups",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/scim+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"schemas\": [\"urn:ietf:params:scim:schemas:core:2.0:Group\"],\n  \"displayName\": \"Engineering\",\n  \"members\": []\n}"
+            },
+            "description": "Create a new group. The response ID is automatically saved to the {{groupId}} variable."
+          }
+        },
+        {
+          "name": "Create Group (with members)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('groupId', jsonData.id);",
+                  "    console.log('Saved groupId: ' + jsonData.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/Groups",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/scim+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"schemas\": [\"urn:ietf:params:scim:schemas:core:2.0:Group\"],\n  \"displayName\": \"DevOps Team\",\n  \"members\": [\n    {\n      \"value\": \"{{userId}}\",\n      \"display\": \"John Doe\"\n    }\n  ]\n}"
+            },
+            "description": "Create a group with existing users as members. Create a user first so {{userId}} is set."
+          }
+        },
+        {
+          "name": "Replace Group (PUT)",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/Groups/{{groupId}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/scim+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"schemas\": [\"urn:ietf:params:scim:schemas:core:2.0:Group\"],\n  \"displayName\": \"Engineering - Updated\",\n  \"members\": [\n    {\n      \"value\": \"{{userId}}\",\n      \"display\": \"John Doe\"\n    }\n  ]\n}"
+            },
+            "description": "Full replacement of a group resource."
+          }
+        },
+        {
+          "name": "Patch Group (add member)",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/Groups/{{groupId}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/scim+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"schemas\": [\"urn:ietf:params:scim:api:messages:2.0:PatchOp\"],\n  \"Operations\": [\n    {\n      \"op\": \"add\",\n      \"path\": \"members\",\n      \"value\": [\n        {\n          \"value\": \"{{userId}}\"\n        }\n      ]\n    }\n  ]\n}"
+            },
+            "description": "Add a member to a group via PATCH."
+          }
+        },
+        {
+          "name": "Patch Group (remove member)",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/Groups/{{groupId}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/scim+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"schemas\": [\"urn:ietf:params:scim:api:messages:2.0:PatchOp\"],\n  \"Operations\": [\n    {\n      \"op\": \"remove\",\n      \"path\": \"members[value eq \\\"{{userId}}\\\"]\"\n    }\n  ]\n}"
+            },
+            "description": "Remove a specific member from a group via PATCH."
+          }
+        },
+        {
+          "name": "Patch Group (rename)",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/Groups/{{groupId}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/scim+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"schemas\": [\"urn:ietf:params:scim:api:messages:2.0:PatchOp\"],\n  \"Operations\": [\n    {\n      \"op\": \"replace\",\n      \"path\": \"displayName\",\n      \"value\": \"Platform Engineering\"\n    }\n  ]\n}"
+            },
+            "description": "Rename a group via PATCH replace."
+          }
+        },
+        {
+          "name": "Delete Group",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/Groups/{{groupId}}",
+            "description": "Delete a group by its SCIM ID."
+          }
+        }
+      ]
+    }
+  ]
+}

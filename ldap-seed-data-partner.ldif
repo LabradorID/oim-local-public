@@ -1,0 +1,202 @@
+# Organizational Units
+dn: ou=People,dc=partner,dc=com
+objectClass: organizationalUnit
+ou: People
+
+dn: ou=Groups,dc=partner,dc=com
+objectClass: organizationalUnit
+ou: Groups
+
+# --- Users ---
+# 5 shared users (same person as in primary LDAP, different domain)
+# 5 new users unique to the partner directory
+
+dn: uid=thomas.schmidt,ou=People,dc=partner,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+uid: thomas.schmidt
+cn: Thomas Schmidt
+givenName: Thomas
+sn: Schmidt
+mail: thomas.schmidt@partner.com
+title: Lead Developer
+employeeNumber: P-001
+departmentNumber: Engineering
+userPassword: Password123
+
+dn: uid=maria.weber,ou=People,dc=partner,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+uid: maria.weber
+cn: Maria Christina Weber
+givenName: Maria
+sn: Weber
+mail: maria.weber@partner.com
+title: Finance Director
+employeeNumber: P-002
+departmentNumber: Finance
+userPassword: Password123
+
+dn: uid=stefan.fischer,ou=People,dc=partner,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+uid: stefan.fischer
+cn: Stefan Fischer
+givenName: Stefan
+sn: Fischer
+mail: stefan.fischer@partner.com
+title: Cloud Architect
+employeeNumber: P-003
+departmentNumber: Engineering
+userPassword: Password123
+
+dn: uid=sandra.hoffmann,ou=People,dc=partner,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+uid: sandra.hoffmann
+cn: Sandra Kathrin Hoffmann
+givenName: Sandra
+sn: Hoffmann
+mail: sandra.hoffmann@partner.com
+title: Principal Engineer
+employeeNumber: P-004
+departmentNumber: Engineering
+userPassword: Password123
+
+dn: uid=andreas.wagner,ou=People,dc=partner,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+uid: andreas.wagner
+cn: Andreas Wagner
+givenName: Andreas
+sn: Wagner
+mail: andreas.wagner@partner.com
+title: Infrastructure Lead
+employeeNumber: P-005
+departmentNumber: IT Operations
+userPassword: Password123
+
+dn: uid=laura.richter,ou=People,dc=partner,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+uid: laura.richter
+cn: Laura Richter
+givenName: Laura
+sn: Richter
+mail: laura.richter@partner.com
+title: Product Manager
+employeeNumber: P-006
+departmentNumber: Product Management
+userPassword: Password123
+
+dn: uid=felix.hartmann,ou=People,dc=partner,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+uid: felix.hartmann
+cn: Felix Johann Hartmann
+givenName: Felix
+sn: Hartmann
+mail: felix.hartmann@partner.com
+title: Security Analyst
+employeeNumber: P-007
+departmentNumber: IT Operations
+userPassword: Password123
+
+dn: uid=elena.schneider,ou=People,dc=partner,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+uid: elena.schneider
+cn: Elena Marie Schneider
+givenName: Elena
+sn: Schneider
+mail: elena.schneider@partner.com
+title: QA Lead
+employeeNumber: P-008
+departmentNumber: Quality Assurance
+userPassword: Password123
+
+dn: uid=markus.koch,ou=People,dc=partner,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+uid: markus.koch
+cn: Markus Koch
+givenName: Markus
+sn: Koch
+mail: markus.koch@partner.com
+title: Data Engineer
+employeeNumber: P-009
+departmentNumber: Engineering
+userPassword: Password123
+
+dn: uid=caroline.meier,ou=People,dc=partner,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+uid: caroline.meier
+cn: Caroline Sophie Meier
+givenName: Caroline
+sn: Meier
+mail: caroline.meier@partner.com
+title: HR Business Partner
+employeeNumber: P-010
+departmentNumber: Human Resources
+userPassword: Password123
+
+# --- Groups ---
+
+dn: cn=Engineering,ou=Groups,dc=partner,dc=com
+objectClass: groupOfNames
+cn: Engineering
+member: uid=thomas.schmidt,ou=People,dc=partner,dc=com
+member: uid=stefan.fischer,ou=People,dc=partner,dc=com
+member: uid=sandra.hoffmann,ou=People,dc=partner,dc=com
+member: uid=markus.koch,ou=People,dc=partner,dc=com
+
+dn: cn=IT Operations,ou=Groups,dc=partner,dc=com
+objectClass: groupOfNames
+cn: IT Operations
+member: uid=andreas.wagner,ou=People,dc=partner,dc=com
+member: uid=felix.hartmann,ou=People,dc=partner,dc=com
+
+dn: cn=Product Management,ou=Groups,dc=partner,dc=com
+objectClass: groupOfNames
+cn: Product Management
+member: uid=laura.richter,ou=People,dc=partner,dc=com
+
+dn: cn=Quality Assurance,ou=Groups,dc=partner,dc=com
+objectClass: groupOfNames
+cn: Quality Assurance
+member: uid=elena.schneider,ou=People,dc=partner,dc=com
+
+dn: cn=Finance,ou=Groups,dc=partner,dc=com
+objectClass: groupOfNames
+cn: Finance
+member: uid=maria.weber,ou=People,dc=partner,dc=com
+
+dn: cn=Human Resources,ou=Groups,dc=partner,dc=com
+objectClass: groupOfNames
+cn: Human Resources
+member: uid=caroline.meier,ou=People,dc=partner,dc=com
+
+dn: cn=All Employees,ou=Groups,dc=partner,dc=com
+objectClass: groupOfNames
+cn: All Employees
+member: uid=thomas.schmidt,ou=People,dc=partner,dc=com
+member: uid=maria.weber,ou=People,dc=partner,dc=com
+member: uid=stefan.fischer,ou=People,dc=partner,dc=com
+member: uid=sandra.hoffmann,ou=People,dc=partner,dc=com
+member: uid=andreas.wagner,ou=People,dc=partner,dc=com
+member: uid=laura.richter,ou=People,dc=partner,dc=com
+member: uid=felix.hartmann,ou=People,dc=partner,dc=com
+member: uid=elena.schneider,ou=People,dc=partner,dc=com
+member: uid=markus.koch,ou=People,dc=partner,dc=com
+member: uid=caroline.meier,ou=People,dc=partner,dc=com

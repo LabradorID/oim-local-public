@@ -1,0 +1,208 @@
+# Organizational Units
+dn: ou=People,dc=example,dc=com
+objectClass: organizationalUnit
+ou: People
+
+dn: ou=Groups,dc=example,dc=com
+objectClass: organizationalUnit
+ou: Groups
+
+dn: ou=NewUnit,dc=example,dc=com
+objectClass: organizationalUnit
+ou: NewUnit
+
+# --- Users (matching scim-seed-data.json) ---
+
+dn: uid=anna.mueller,ou=People,dc=example,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+uid: anna.mueller
+cn: Anna Elisabeth Mueller
+givenName: Anna
+sn: Mueller
+mail: anna.mueller@example.com
+title: HR Manager
+employeeNumber: EMP-001
+departmentNumber: Human Resources
+userPassword: Password123
+
+dn: uid=thomas.schmidt,ou=People,dc=example,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+uid: thomas.schmidt
+cn: Thomas Schmidt
+givenName: Thomas
+sn: Schmidt
+mail: thomas.schmidt@example.com
+title: Senior Developer
+employeeNumber: EMP-002
+departmentNumber: Engineering
+userPassword: Password123
+
+dn: uid=maria.weber,ou=People,dc=example,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+uid: maria.weber
+cn: Maria Christina Weber
+givenName: Maria
+sn: Weber
+mail: maria.weber@example.com
+title: Financial Analyst
+employeeNumber: EMP-003
+departmentNumber: Finance
+userPassword: Password123
+
+dn: uid=stefan.fischer,ou=People,dc=example,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+uid: stefan.fischer
+cn: Stefan Fischer
+givenName: Stefan
+sn: Fischer
+mail: stefan.fischer@example.com
+title: DevOps Engineer
+employeeNumber: EMP-004
+departmentNumber: Engineering
+userPassword: Password123
+
+dn: uid=julia.becker,ou=People,dc=example,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+uid: julia.becker
+cn: Julia Marie Becker
+givenName: Julia
+sn: Becker
+mail: julia.becker@example.com
+title: Marketing Specialist
+employeeNumber: EMP-005
+departmentNumber: Marketing
+userPassword: Password123
+
+dn: uid=michael.braun,ou=People,dc=example,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+uid: michael.braun
+cn: Michael Braun
+givenName: Michael
+sn: Braun
+mail: michael.braun@example.com
+title: Account Executive
+employeeNumber: EMP-006
+departmentNumber: Sales
+userPassword: Password123
+
+dn: uid=sandra.hoffmann,ou=People,dc=example,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+uid: sandra.hoffmann
+cn: Sandra Kathrin Hoffmann
+givenName: Sandra
+sn: Hoffmann
+mail: sandra.hoffmann@example.com
+title: Software Architect
+employeeNumber: EMP-007
+departmentNumber: Engineering
+userPassword: Password123
+
+dn: uid=andreas.wagner,ou=People,dc=example,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+uid: andreas.wagner
+cn: Andreas Wagner
+givenName: Andreas
+sn: Wagner
+mail: andreas.wagner@example.com
+title: System Administrator
+employeeNumber: EMP-008
+departmentNumber: IT Operations
+userPassword: Password123
+
+dn: uid=katharina.schulz,ou=People,dc=example,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+uid: katharina.schulz
+cn: Katharina Sophie Schulz
+givenName: Katharina
+sn: Schulz
+mail: katharina.schulz@example.com
+title: Legal Counsel
+employeeNumber: EMP-009
+departmentNumber: Legal
+userPassword: Password123
+
+dn: uid=peter.klein,ou=People,dc=example,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+uid: peter.klein
+cn: Peter Klein
+givenName: Peter
+sn: Klein
+mail: peter.klein@example.com
+title: Controller
+employeeNumber: EMP-010
+departmentNumber: Finance
+userPassword: Password123
+
+# --- Groups ---
+
+dn: cn=Engineering,ou=Groups,dc=example,dc=com
+objectClass: groupOfNames
+cn: Engineering
+member: uid=thomas.schmidt,ou=People,dc=example,dc=com
+member: uid=stefan.fischer,ou=People,dc=example,dc=com
+member: uid=sandra.hoffmann,ou=People,dc=example,dc=com
+
+dn: cn=Finance,ou=Groups,dc=example,dc=com
+objectClass: groupOfNames
+cn: Finance
+member: uid=maria.weber,ou=People,dc=example,dc=com
+member: uid=peter.klein,ou=People,dc=example,dc=com
+
+dn: cn=Human Resources,ou=Groups,dc=example,dc=com
+objectClass: groupOfNames
+cn: Human Resources
+member: uid=anna.mueller,ou=People,dc=example,dc=com
+
+dn: cn=Marketing,ou=Groups,dc=example,dc=com
+objectClass: groupOfNames
+cn: Marketing
+member: uid=julia.becker,ou=People,dc=example,dc=com
+
+dn: cn=Sales,ou=Groups,dc=example,dc=com
+objectClass: groupOfNames
+cn: Sales
+member: uid=michael.braun,ou=People,dc=example,dc=com
+
+dn: cn=IT Operations,ou=Groups,dc=example,dc=com
+objectClass: groupOfNames
+cn: IT Operations
+member: uid=andreas.wagner,ou=People,dc=example,dc=com
+
+dn: cn=Legal,ou=Groups,dc=example,dc=com
+objectClass: groupOfNames
+cn: Legal
+member: uid=katharina.schulz,ou=People,dc=example,dc=com
+
+dn: cn=All Employees,ou=Groups,dc=example,dc=com
+objectClass: groupOfNames
+cn: All Employees
+member: uid=anna.mueller,ou=People,dc=example,dc=com
+member: uid=thomas.schmidt,ou=People,dc=example,dc=com
+member: uid=maria.weber,ou=People,dc=example,dc=com
+member: uid=stefan.fischer,ou=People,dc=example,dc=com
+member: uid=julia.becker,ou=People,dc=example,dc=com
+member: uid=michael.braun,ou=People,dc=example,dc=com
+member: uid=sandra.hoffmann,ou=People,dc=example,dc=com
+member: uid=andreas.wagner,ou=People,dc=example,dc=com
+member: uid=katharina.schulz,ou=People,dc=example,dc=com
+member: uid=peter.klein,ou=People,dc=example,dc=com

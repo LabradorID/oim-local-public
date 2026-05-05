@@ -1,0 +1,36 @@
+# Local environment overrides
+.env
+.env.local
+*.local
+
+# Backups
+backups/
+*.bak
+
+# Exported SQL Server state (large; rebuilt via `make export-state`)
+mssql-state/
+
+# Logs
+*.log
+logs/
+
+# OIM build/diagnostic artifacts
+*.sdf
+*.diagsession
+
+# Editor/IDE
+.vscode/
+.idea/
+.claude/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# --- Secrets ---
+# Ignore everything under secrets/ except the templates and READMEs.
+secrets/**
+!secrets/README.md
+!secrets/*/
+!secrets/**/*.example
+!secrets/**/*.README
