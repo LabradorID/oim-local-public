@@ -46,10 +46,17 @@ openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem \
     -days 3650 -nodes -subj "/CN=oim-apiserver"
 openssl pkcs12 -export -out SessionCertificate.pfx \
     -inkey key.pem -in cert.pem -passout pass:
+chmod 644 SessionCertificate.pfx
 ```
 
 Copy `SessionCertificate.pfx` into both `secrets/appserver/` and
 `secrets/apiserver/`.
+
+> `openssl pkcs12 -export` writes the file as `0600`. The bind-mount preserves
+> the host UID/GID, and the non-root user inside the OneIM containers cannot
+> read it — startup fails with `UnauthorizedAccessException: Access to the path
+> '/run/secrets/SessionCertificate.pfx' is denied.` `chmod 644` is safe here
+> because this is a local-dev cert with an empty password.
 
 ### `APPSERVERCONNSTRING` gotcha
 

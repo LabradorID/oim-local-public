@@ -30,6 +30,7 @@ You **must** obtain the following yourself before any of this is useful:
   GNU `make`.
 - (Windows + WSL) `hostname -I` should report a routable IP for the WSL host;
   Windows clients connect to that IP, not `localhost`.
+- Make sure make and docker are installed on your machine
 
 The OIM container images (`oneidentity/oneim-dbagent`, `oneidentity/oneim-job`,
 `oneidentity/oneim-appserver`, `oneidentity/oneim-api`) are public on Docker Hub
@@ -80,8 +81,8 @@ Now, on the machine where the OIM sources are installed, launch the
 - Trust server certificate: yes
 
 Let the Wizard create the OneIM database, the DB user accounts (e.g.
-`OneIM_Admin`, `OneIM_Config`, `OneIM_User`), and the OneIM system user
-(`viadmin` etc.).
+`OneIM_Admin`, `OneIM_Config`, `OneIM_User` but you can skip the config and user for database access as for the local setup we can start with the admin), and the OneIM system user
+(`viadmin` etc.). You can easily use the same password for all. 
 
 When the Wizard finishes successfully and the DB Agent has worked through the
 initial DBQueue, you have a usable OneIM database living inside the container's
@@ -145,7 +146,9 @@ the `mssql` service before continuing.
 
 The secret files under `secrets/apiserver/` and `secrets/appserver/` are
 committed with ready-to-use **local-dev** values that match the defaults in
-`.env.example`. The only thing you still have to provide yourself is the
+`.env.example`. 
+**Note** replace the localhost urls with the hostname ip address of your machine
+The only thing you still have to provide yourself is the
 session certificate:
 
 ```bash
