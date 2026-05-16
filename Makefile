@@ -1,4 +1,4 @@
-.PHONY: help start-sqlinstall stop-sqlinstall restart-sqlinstall logs status connection-info clean clean-volumes clean-all backup restore shell prepare-server push-image push-image-remote start-oim stop-oim stop-down-oim fresh-start-oim export-state start-registry clean-registry start-data build-data stop-data logs-data start-scim stop-scim logs-scim seed-scim seed-scim-generate start-ldap stop-ldap logs-ldap seed-ldap start-ldap2 stop-ldap2 logs-ldap2 seed-ldap2 stop-all
+.PHONY: help start-sqlinstall stop-sqlinstall restart-sqlinstall logs status connection-info clean clean-volumes clean-all backup restore shell prepare-server push-image push-image-remote start-oim stop-oim stop-down-oim fresh-start-oim export-state start-registry clean-registry snapshot list-snapshots rollback start-data build-data stop-data logs-data start-scim stop-scim logs-scim seed-scim seed-scim-generate start-ldap stop-ldap logs-ldap seed-ldap start-ldap2 stop-ldap2 logs-ldap2 seed-ldap2 stop-all
 
 # Registry configuration
 LOCAL_REGISTRY := localhost:5000
@@ -22,6 +22,11 @@ help:
 	@echo "  make push-image         - Build full-state image and push to LOCAL registry"
 	@echo "  make push-image-remote  - Build full-state image and push to a REMOTE registry"
 	@echo "  make clean-registry     - Remove the local registry and stored images"
+	@echo ""
+	@echo "  --- Failsafe development (snapshot & rollback) ---"
+	@echo "  make snapshot TAG=v02_Feature_ready  - Snapshot running OneIM DB to a new tag"
+	@echo "  make list-snapshots                  - List snapshot tags in the local registry"
+	@echo "  make rollback TAG=v01                - Switch active image tag and recreate MSSQL"
 	@echo ""
 	@echo "  --- Ready environment (uses image you built above) ---"
 	@echo "  make start-oim          - Start/resume full OIM environment (mssql, dbagent, jobserver, syncserver, appserver, apiserver)"
@@ -276,6 +281,91 @@ push-image-remote:
 	echo "Cleaning up mssql-state..."; \
 	rm -rf mssql-state; \
 	echo "To pull: docker pull $(REMOTE_REGISTRY)/$(IMAGE_NAME):$$TAG"
+
+# Snapshot the live OneIM database into a new tagged image (failsafe checkpoint).
+# Does NOT change the active tag in .env — the running container keeps using its
+# current image. Usage: make snapshot TAG=v02_Downtimer_LDAP_ready
+snapshot:
+	@if [ -z "$(TAG)" ]; then \
+		echo "Error: TAG is required."; \
+		echo "Usage: make snapshot TAG=v02_Feature_ready"; \
+		exit 1; \
+	fi
+	@$(MAKE) -s start-registry
+	@if curl -sf -o /dev/null -H "Accept: application/vnd.docker.distribution.manifest.v2+json" http://localhost:5000/v2/$(IMAGE_NAME)/manifests/$(TAG); then \
+		echo "Error: tag '$(TAG)' already exists in $(LOCAL_REGISTRY)/$(IMAGE_NAME)."; \
+		echo "Pick a different tag, or remove it from the registry first."; \
+		exit 1; \
+	fi
+	@CONTAINER=$${CONTAINER:-oim10-mssql-ready}; \
+	if ! docker ps -q -f name=$$CONTAINER | grep -q .; then \
+		echo "Error: container '$$CONTAINER' is not running."; \
+		echo "Start it with 'make start-oim' (or pass CONTAINER=<name>) first."; \
+		exit 1; \
+	fi; \
+	echo "=== Snapshotting $$CONTAINER -> $(LOCAL_REGISTRY)/$(IMAGE_NAME):$(TAG) ==="; \
+	echo "Note: SQL Server will stop briefly during the copy, then restart."; \
+	$(MAKE) export-state CONTAINER=$$CONTAINER; \
+	$(MAKE) push-image TAG=$(TAG); \
+	echo ""; \
+	echo "Snapshot saved. Roll back to it later with:"; \
+	echo "  make rollback TAG=$(TAG)"
+
+# List snapshot tags in the local registry and show the active tag from .env.
+list-snapshots:
+	@$(MAKE) -s start-registry
+	@echo "Snapshots in $(LOCAL_REGISTRY)/$(IMAGE_NAME):"
+	@TAGS=$$(curl -sf http://localhost:5000/v2/$(IMAGE_NAME)/tags/list 2>/dev/null | jq -r '.tags[]?' 2>/dev/null | sort); \
+	if [ -z "$$TAGS" ]; then \
+		echo "  (no snapshots yet - run 'make snapshot TAG=...' to create one)"; \
+	else \
+		echo "$$TAGS" | sed 's/^/  /'; \
+	fi
+	@echo ""
+	@ACTIVE=$$(grep ^MSSQL_IMAGE_TAG .env 2>/dev/null | cut -d= -f2); \
+	echo "Active tag (MSSQL_IMAGE_TAG in .env): $${ACTIVE:-v01 (default)}"
+
+# Switch the active image tag and recreate the OneIM environment from it.
+# Usage: make rollback TAG=v01
+rollback:
+	@if [ -z "$(TAG)" ]; then \
+		echo "Error: TAG is required."; \
+		echo "Usage: make rollback TAG=v01"; \
+		echo ""; \
+		$(MAKE) -s list-snapshots; \
+		exit 1; \
+	fi
+	@$(MAKE) -s start-registry
+	@if ! curl -sf -o /dev/null -H "Accept: application/vnd.docker.distribution.manifest.v2+json" http://localhost:5000/v2/$(IMAGE_NAME)/manifests/$(TAG); then \
+		echo "Error: tag '$(TAG)' not found in $(LOCAL_REGISTRY)/$(IMAGE_NAME)."; \
+		echo ""; \
+		$(MAKE) -s list-snapshots; \
+		exit 1; \
+	fi
+	@CURRENT=$$(grep ^MSSQL_IMAGE_TAG .env 2>/dev/null | cut -d= -f2); \
+	echo "=== Rollback ==="; \
+	echo "  Current MSSQL_IMAGE_TAG: $${CURRENT:-v01 (default)}"; \
+	echo "  Target  MSSQL_IMAGE_TAG: $(TAG)"; \
+	echo ""; \
+	echo "WARNING: this recreates the MSSQL container. Any database changes made"; \
+	echo "since your last snapshot will be LOST. Take a 'make snapshot' first if"; \
+	echo "you want to preserve the current state."; \
+	read -p "Continue? [y/N] " -n 1 -r REPLY; \
+	echo ""; \
+	if [ "$$REPLY" != "y" ] && [ "$$REPLY" != "Y" ]; then \
+		echo "Cancelled."; \
+		exit 0; \
+	fi; \
+	if [ ! -f .env ]; then \
+		echo "MSSQL_IMAGE_TAG=$(TAG)" > .env; \
+	elif grep -q ^MSSQL_IMAGE_TAG .env; then \
+		sed -i.bak "s|^MSSQL_IMAGE_TAG=.*|MSSQL_IMAGE_TAG=$(TAG)|" .env && rm -f .env.bak; \
+	else \
+		echo "MSSQL_IMAGE_TAG=$(TAG)" >> .env; \
+	fi; \
+	echo "Updated .env -> MSSQL_IMAGE_TAG=$(TAG)"; \
+	echo ""; \
+	$(MAKE) fresh-start-oim
 
 # Start only the SCIM server
 start-scim:

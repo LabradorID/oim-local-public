@@ -1,6 +1,6 @@
 services:
   mssql:
-    image: localhost:5000/oim10-mssql-ready:v01  # Use local registry image
+    image: localhost:5000/oim10-mssql-ready:${MSSQL_IMAGE_TAG:-v01}  # Override via MSSQL_IMAGE_TAG in .env (see Failsafe development in README)
     container_name: oim10-mssql-ready
     hostname: mssql
     ports:

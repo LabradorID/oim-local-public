@@ -140,9 +140,12 @@ make push-image-remote REMOTE_REGISTRY=yourdockerhubuser TAG=v01
 
 Goal: start the full OIM stack against the image you just built.
 
-`docker-compose.oim.yml` references `localhost:5000/oim10-mssql-ready:v01` by
-default. If you used a different tag or registry, edit the `image:` field of
-the `mssql` service before continuing.
+`docker-compose.oim.yml` reads the image tag from `MSSQL_IMAGE_TAG` in `.env`
+(defaulting to `v01`), so the full reference is
+`localhost:5000/oim10-mssql-ready:${MSSQL_IMAGE_TAG}`. If you used a different
+tag during Flow 2, set `MSSQL_IMAGE_TAG=<your-tag>` in `.env`. To switch
+between snapshots later, use `make rollback TAG=<tag>` (see
+[Failsafe development](#failsafe-development--snapshot--rollback)).
 
 The secret files under `secrets/apiserver/` and `secrets/appserver/` are
 committed with ready-to-use **local-dev** values that match the defaults in
@@ -191,12 +194,84 @@ make stop-oim           # stop, keep data
 make stop-down-oim      # stop and remove containers (data lost)
 ```
 
-To save changes back to the image after working in the environment:
+To save changes back to a new image after working in the environment, use the
+snapshot/rollback workflow described next — that's the recommended pattern for
+day-to-day development.
+
+---
+
+## Failsafe development — snapshot & rollback
+
+Goal: once you have a working OneIM database (Flow 2 produced `v01`), use the
+local registry as a chain of **named checkpoints**. Before any change you
+suspect might break things — a new module import, a schema migration, a
+Synchronization Editor experiment — snapshot the current state to a new tag.
+If the change goes wrong, roll back to that tag. Everything that lives in the
+SQL Server (custom config, project data, captured LDAP/SCIM sync state) comes
+back exactly as it was.
+
+What is and isn't captured:
+
+- **Captured**: the entire MSSQL data directory (`/var/opt/mssql`), so the
+  OneIM database plus `master` (logins) / `model` / `msdb`.
+- **Not captured**: job server / app server / API server state (those are
+  stateless against the DB), secrets under `secrets/`, `.env`, compose files,
+  and any data living *only* inside the SCIM or LDAP containers. Commit those
+  to git.
+
+### Tagging convention
+
+Use `v<NN>_<Description>_ready`, for example:
+
+| Tag                          | Meaning                                           |
+|------------------------------|---------------------------------------------------|
+| `v01`                        | Pristine Configuration-Wizard install (baseline). |
+| `v02_Downtimer_LDAP_ready`   | LDAP integration + Downtimer feature added.       |
+| `v03_<next-feature>_ready`   | Next stable checkpoint.                           |
+
+Tags are immutable in the registry, so pick a fresh tag for each snapshot.
+
+### The three commands
 
 ```bash
-make export-state CONTAINER=oim10-mssql-ready
-make push-image TAG=v02   # bump the tag, then update docker-compose.oim.yml
+# Snapshot the live database. The running container keeps using its current
+# image; this just pushes a new tag you can come back to. SQL Server stops
+# briefly during the copy and then restarts.
+make snapshot TAG=v02_Downtimer_LDAP_ready
+
+# See what's in the registry and which tag is currently active.
+make list-snapshots
+
+# Switch the active tag and recreate the MSSQL container from that snapshot.
+# Prompts before destroying the running container. Rewrites MSSQL_IMAGE_TAG
+# in .env so subsequent `make start-oim` calls pick the same one up.
+make rollback TAG=v01
 ```
+
+### Day-to-day loop
+
+1. `make start-oim` — environment resumes on whatever tag `.env` points at.
+2. Make changes (Designer / Manager / Sync Editor / SQL).
+3. Verify everything still works.
+4. `make snapshot TAG=v0X_<slug>_ready` — failsafe checkpoint pushed.
+5. Continue. If a later change breaks things, `make rollback TAG=v0X_<slug>_ready`.
+
+`make fresh-start-oim` remains the "reset to the active tag" escape hatch — by
+default it resets to `v01` (the pristine Wizard install).
+
+### Caveats
+
+- A snapshot of an installed OneIM database includes hashed system-user
+  passwords and the trusted-source key. **Never push snapshot tags to a public
+  registry.** Use `make push-image-remote` only with a private remote.
+- Each snapshot is multi-GB. `make list-snapshots` shows what's accumulated;
+  `make clean-registry` wipes everything — back up any tag you want to keep
+  with `make push-image-remote REMOTE_REGISTRY=<private> TAG=<tag>` first.
+- Rollback recreates the MSSQL container. Any DB changes since the snapshot
+  you're rolling back to are lost. Take a fresh `make snapshot` before
+  rolling back if you want to keep the current state too.
+- The compose file references `${MSSQL_IMAGE_TAG:-v01}`. If `.env` is missing
+  or the variable is unset, you get `v01` — i.e. the pristine baseline.
 
 ---
 
