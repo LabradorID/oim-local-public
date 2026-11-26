@@ -33,8 +33,8 @@ The only file you still have to provide yourself is `SessionCertificate.pfx`
 |---------------------------|------------------------------------------------------------------------------------------|
 | `CONNSTRING`              | Direct DB connection (used during initial register).                                     |
 | `DBSYSTEM`                | Database backend (`MSSQL`).                                                              |
-| `BASEURL`                 | Public URL the API Server is reachable at, e.g. `http://localhost:8182/`.                |
-| `APPSERVERCONNSTRING`     | URL of the App Server, prefixed with `Url=`. Must match the host the portal session uses (typically the host IP, NOT `appserver`). |
+| `BASEURL`                 | Public URL the API Server is reachable at: `http://oimhost:8182/`.                        |
+| `APPSERVERCONNSTRING`     | URL of the App Server, prefixed with `Url=`. Must match the host the portal session uses: `oimhost`, NOT `appserver`. |
 | `TRUSTEDSOURCEKEY`        | Clear-text key that registers this API Server as a trusted source. The matching hash is written into `QBMWebApplication.TrustedSourceKey` on first start. |
 | `UPDATEUSER`              | OneIM user/password used for schema updates.                                             |
 | `SessionCertificate.pfx`  | PKCS#12 certificate. **Required.**                                                       |
@@ -63,11 +63,12 @@ Copy `SessionCertificate.pfx` into both `secrets/appserver/` and
 The value MUST start with `Url=`, e.g.:
 
 ```
-Url=http://172.31.163.58:8080/
+Url=http://oimhost:8080/
 ```
 
 The URL has to match the AppServer URL that the portal session actually uses
-(usually the host IP, not the internal Docker hostname `appserver`). Without the
+(`oimhost`, not the internal Docker hostname `appserver`; see the README's
+"Networking" section). Without the
 `Url=` prefix the API Server cannot register the AppServer connection, and
 portal features that delegate to the AppServer (e.g. Lucene-backed search) fail
 with:

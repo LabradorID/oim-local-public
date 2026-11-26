@@ -28,14 +28,73 @@ You **must** obtain the following yourself before any of this is useful:
   Windows machine that can reach the MSSQL container on port 1433).
 - A working Docker engine with Compose v2, ~30 GB free disk space, and
   GNU `make`.
-- (Windows + WSL) `hostname -I` should report a routable IP for the WSL host;
-  Windows clients connect to that IP, not `localhost`.
+- A hosts entry `127.0.0.1  oimhost`. See [Networking](#networking).
 - Make sure make and docker are installed on your machine
 
 The OIM container images (`oneidentity/oneim-dbagent`, `oneidentity/oneim-job`,
 `oneidentity/oneim-appserver`, `oneidentity/oneim-api`) are public on Docker Hub
 and pulled automatically — no licence key is needed to pull them, but you still
 need a OneIM database (i.e. step 1 below) for them to work against.
+
+---
+
+## Networking
+
+The stack is addressed by one hostname, `oimhost`, from everywhere. No IP
+address appears in any config file or database value, so nothing breaks when
+the WSL IP changes after a Windows reboot or when the setup moves to another
+machine.
+
+| Client | `oimhost` resolves to | Set up by |
+|---|---|---|
+| Windows: Manager, Designer, Synchronization Editor, Configuration Wizard, browser | `127.0.0.1`, forwarded into WSL | Windows hosts file |
+| WSL shell: curl, make | `127.0.0.1` | WSL copies the Windows hosts file into `/etc/hosts` when it starts |
+| OIM containers (dbagent, jobserver, syncserver, appserver, apiserver) | Docker host gateway, which serves the published ports | `extra_hosts: oimhost:host-gateway` in `docker-compose.oim.yml` |
+
+Use the **published** ports everywhere:
+
+| Service | Address |
+|---|---|
+| SQL Server | `oimhost,1433` |
+| App Server | `http://oimhost:8080` |
+| API Server / Portal | `http://oimhost:8182` |
+| Job Server / Sync Server web UI | `http://oimhost:1880` / `http://oimhost:1881` |
+| LDAP / LDAP 2 | `oimhost:1389` / `oimhost:2389` |
+| SCIM | `http://oimhost:8585` |
+
+A connection string that a Windows tool writes into the database then also
+works inside the containers. Examples are the main database connection from the
+Configuration Wizard, sync project connections from the Synchronization Editor,
+and URLs in configuration parameters. Connections that only run between
+containers keep the Docker names; the `CONNSTRING` values use `mssql`.
+
+### Setting up the hosts entry
+
+- **Windows with Docker Engine inside WSL (tested).** In an admin PowerShell:
+
+  ```powershell
+  Add-Content -Path C:\Windows\System32\drivers\etc\hosts -Value "127.0.0.1  oimhost"
+  wsl --shutdown
+  ```
+
+  WSL copies the entry into `/etc/hosts` on its next start, unless
+  `/etc/wsl.conf` sets `generateHosts = false`; in that case add
+  `127.0.0.1  oimhost` to `/etc/hosts` in WSL as well. Windows reaches the
+  published ports through WSL localhost forwarding (the default in NAT mode).
+
+  Check it: `getent hosts oimhost` in WSL prints `127.0.0.1 oimhost`, and with
+  MSSQL running, `Test-NetConnection oimhost -Port 1433` in PowerShell succeeds.
+- **Native Linux (untested).** Add `127.0.0.1  oimhost` to `/etc/hosts`.
+- **Docker Desktop on Windows or macOS (untested).** Add the same entry to the
+  host's hosts file; Docker Desktop supports `host-gateway`.
+
+`host-gateway` needs Docker Engine 20.10 or newer.
+
+**Windows can't reach `oimhost` any more.** WSL localhost forwarding sometimes
+stops after hibernate or Fast Startup; `wsl --shutdown` and starting WSL again
+fixes it. If it keeps failing, point the Windows hosts entry at the WSL IP
+(`hostname -I`) instead. That line is the only thing to change; the containers
+and the database values stay as they are.
 
 ---
 
@@ -74,11 +133,15 @@ This brings up:
 Now, on the machine where the OIM sources are installed, launch the
 **Configuration Wizard** and point it at the SQL Server:
 
-- Server: `<host IP>,1433`
+- Server: `oimhost,1433` (see [Networking](#networking))
 - Auth: SQL Server Authentication
 - Login: `sa`
 - Password: the value you set in `.env` (`MSSQL_SA_PASSWORD`)
 - Trust server certificate: yes
+
+Use `oimhost` here, not an IP or `localhost`: this value becomes the main
+database connection string, which the Job Server later uses from inside its
+container.
 
 Let the Wizard create the OneIM database, the DB user accounts (e.g.
 `OneIM_Admin`, `OneIM_Config`, `OneIM_User` but you can skip the config and user for database access as for the local setup we can start with the admin), and the OneIM system user
@@ -150,7 +213,7 @@ between snapshots later, use `make rollback TAG=<tag>` (see
 The secret files under `secrets/apiserver/` and `secrets/appserver/` are
 committed with ready-to-use **local-dev** values that match the defaults in
 `.env.example`. 
-**Note** replace the localhost urls with the hostname ip address of your machine
+Their URLs already use `oimhost` (see [Networking](#networking)).
 The only thing you still have to provide yourself is the
 session certificate:
 
@@ -163,9 +226,8 @@ openssl pkcs12 -export -out secrets/apiserver/SessionCertificate.pfx \
 cp secrets/apiserver/SessionCertificate.pfx secrets/appserver/SessionCertificate.pfx
 ```
 
-If you connect from a different host (e.g. Windows talking to a WSL host),
-edit `secrets/apiserver/APPSERVERCONNSTRING` so the `Url=` value matches the
-host IP that the portal session uses (see
+`secrets/apiserver/APPSERVERCONNSTRING` (`Url=http://oimhost:8080/`) must
+match the App Server URL that the portal session uses (see
 [`secrets/README.md`](secrets/README.md) for details).
 
 Then bring it up:
@@ -197,6 +259,51 @@ make stop-down-oim      # stop and remove containers (data lost)
 To save changes back to a new image after working in the environment, use the
 snapshot/rollback workflow described next — that's the recommended pattern for
 day-to-day development.
+
+---
+
+## Migrating an install that used an IP address
+
+Earlier versions of this repo used the host's IP address instead of `oimhost`.
+If your database was set up that way:
+
+1. Add the hosts entry (see [Networking](#networking)), pull the new version
+   of this repo, and set `HOST_IP=oimhost` in your `.env`.
+2. Recreate only the five app containers, **never MSSQL**:
+
+   ```bash
+   docker compose -f docker-compose.oim.yml up -d --no-deps --force-recreate \
+       dbagent jobserver syncserver appserver apiserver
+   ```
+
+   The secrets are only read on a container's first start, so the App and API
+   Server need new containers. The database lives in the MSSQL container's
+   writable layer; recreating that container loses it.
+3. Stop `dbagent`, `jobserver` and `syncserver`, then fix the database values
+   with the SQL below (replace `<old-ip>`), e.g. in SSMS against the OneIM
+   database:
+
+   ```sql
+   UPDATE DialogDatabase
+   SET ConnectionString = REPLACE(ConnectionString, '<old-ip>,1433', 'oimhost,1433')
+   WHERE IsMainDatabase = 1;
+
+   -- Jobs already queued carry the old string in ParamIN; remove them the OIM way.
+   -- They move to Ready2EXE = 'HISTORY' and the Job Server cleans them up.
+   DECLARE @t QBM_YParameterList;
+   INSERT INTO @t (Parameter1)
+   SELECT DISTINCT UID_Tree FROM JobQueue WHERE ParamIN LIKE '%<old-ip>%';
+   EXEC QBM_PJobQueueDelete_Bulk @TreesToDelete = @t;
+   ```
+
+4. Fix the sync project connections and variables in the Synchronization
+   Editor (e.g. LDAP server `oimhost`, port `1389`).
+5. Start the three containers again and take a snapshot
+   (`make snapshot TAG=...`, see
+   [Failsafe development](#failsafe-development--snapshot--rollback)).
+
+The API Server adds a new `QBMWebApplication` row for the new `BASEURL`
+instead of updating the old one. You can delete the old row in the Manager.
 
 ---
 
@@ -284,8 +391,8 @@ directories you can use as synchronisation sources/targets in OIM.
 make start-data        # both LDAPs + SCIM
 # or individually:
 make start-scim        # SCIM at :8585
-make start-ldap        # Example Inc.   ldap://<host>:1389
-make start-ldap2       # Partner GmbH   ldap://<host>:2389
+make start-ldap        # Example Inc.   ldap://oimhost:1389
+make start-ldap2       # Partner GmbH   ldap://oimhost:2389
 
 make seed-scim                           # bundled test users from scim-seed-data.json
 make seed-scim-generate COUNT=1000       # generate N random users
@@ -299,6 +406,11 @@ is included for poking the SCIM server interactively.
 These services join the `oim-network` Docker network, so containers in the
 ready environment can address them by hostname (`scimserver`, `ldapserver`,
 `ldapserver2`).
+
+In the Synchronization Editor, set the LDAP server to `oimhost`, port `1389`
+(or `2389`), **not `localhost`**: the editor runs on your machine, but the sync
+itself runs inside the Sync Server container, where `localhost` is the
+container. See [Networking](#networking).
 
 ---
 
@@ -328,8 +440,10 @@ ready environment can address them by hostname (`scimserver`, `ldapserver`,
   [secrets/README.md](secrets/README.md).
 - **Portal search fails with `[810432] Die Verbindung "..." wurde in der
   Konfiguration nicht gefunden.`** Your `APPSERVERCONNSTRING` is wrong; it must
-  start with `Url=` and use the same URL the portal session uses (typically
-  the host IP, not `appserver`).
+  start with `Url=` and use the same URL the portal session uses
+  (`http://oimhost:8080/`, not `appserver`).
+- **Windows can't reach `oimhost`.** Check the hosts entry and restart WSL
+  with `wsl --shutdown`; see [Networking](#networking).
 - **Configuration Wizard refuses to install.** SQL collation isn't
   case-insensitive. Don't change `MSSQL_COLLATION` in
   `docker-compose.sqlinstall.yml`.

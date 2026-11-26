@@ -7,6 +7,10 @@ LOCAL_REGISTRY := localhost:5000
 REMOTE_REGISTRY ?=
 IMAGE_NAME := oim10-mssql-ready
 
+# Name the stack is reached by from the host, WSL and the containers (README "Networking").
+# Read from HOST_IP in .env, defaults to oimhost.
+OIM_HOST ?= $(or $(shell grep -E '^HOST_IP=' .env 2>/dev/null | cut -d= -f2),oimhost)
+
 # Default target
 help:
 	@echo "One Identity Manager Docker Environment - Available Commands:"
@@ -118,9 +122,9 @@ start-data:
 	docker compose -f docker-compose.dataservices.yml up -d
 	@echo ""
 	@echo "Data services are running!"
-	@echo "  SCIM:    http://$$(hostname -I | awk '{print $$1}'):8585"
-	@echo "  LDAP:    ldap://$$(hostname -I | awk '{print $$1}'):1389  (Example Inc.)"
-	@echo "  LDAP 2:  ldap://$$(hostname -I | awk '{print $$1}'):2389  (Partner GmbH)"
+	@echo "  SCIM:    http://$(OIM_HOST):8585"
+	@echo "  LDAP:    ldap://$(OIM_HOST):1389  (Example Inc.)"
+	@echo "  LDAP 2:  ldap://$(OIM_HOST):2389  (Partner GmbH)"
 
 # Rebuild and start data services
 build-data:
@@ -159,22 +163,22 @@ connection-info:
 	@echo "=== SQL Server Connection Information ==="
 	@echo ""
 	@echo "For SSMS or Azure Data Studio:"
-	@echo "  Server:         $$(hostname -I | awk '{print $$1}'),1433"
+	@echo "  Server:         $(OIM_HOST),1433"
 	@echo "  Authentication: SQL Server Authentication"
 	@echo "  Login:          sa"
 	@echo "  Password:       $$(grep MSSQL_SA_PASSWORD .env | cut -d '=' -f2)"
 	@echo "  Trust Cert:     Yes"
 	@echo ""
 	@echo "=== Job Server Web Frontend ==="
-	@echo "  URL:      http://$$(hostname -I | awk '{print $$1}'):1880"
+	@echo "  URL:      http://$(OIM_HOST):1880"
 	@echo "  Username: $$(grep JOBSERVER_HTTP_USER .env 2>/dev/null | cut -d '=' -f2 || echo 'admin')"
 	@echo "  Password: $$(grep JOBSERVER_HTTP_PWD .env 2>/dev/null | cut -d '=' -f2 || echo 'Password123')"
 	@echo ""
 	@echo "=== App Server / API Server ==="
-	@echo "  AppServer: http://$$(hostname -I | awk '{print $$1}'):8080"
-	@echo "  APIServer: http://$$(hostname -I | awk '{print $$1}'):8182"
+	@echo "  AppServer: http://$(OIM_HOST):8080"
+	@echo "  APIServer: http://$(OIM_HOST):8182"
 	@echo ""
-	@echo "Note: from Windows, use the WSL/host IP instead of 'localhost'."
+	@echo "Note: the host, WSL and the containers all use '$(OIM_HOST)' (see README, Networking)."
 
 # Open SQL shell against install-mode container
 shell:
@@ -373,7 +377,7 @@ start-scim:
 	docker compose -f docker-compose.dataservices.yml up -d scimserver
 	@echo ""
 	@echo "SCIM server is running!"
-	@echo "  URL:          http://$$(hostname -I | awk '{print $$1}'):8585"
+	@echo "  URL:          http://$(OIM_HOST):8585"
 	@echo "  Bearer Token: $$(grep SCIM_BEARER_TOKEN .env | cut -d '=' -f2)"
 
 # Stop the SCIM server
@@ -400,7 +404,7 @@ start-ldap:
 	@echo "Starting LDAP server..."
 	docker compose -f docker-compose.dataservices.yml up -d ldapserver
 	@echo ""
-	@echo "  Host:     $$(hostname -I | awk '{print $$1}')"
+	@echo "  Host:     $(OIM_HOST)"
 	@echo "  Port:     1389 (LDAP) / 1636 (LDAPS)"
 	@echo "  Base DN:  dc=example,dc=com"
 	@echo "  Admin DN: cn=admin,dc=example,dc=com"
@@ -424,7 +428,7 @@ start-ldap2:
 	@echo "Starting partner LDAP server (Partner GmbH)..."
 	docker compose -f docker-compose.dataservices.yml up -d ldapserver2
 	@echo ""
-	@echo "  Host:     $$(hostname -I | awk '{print $$1}')"
+	@echo "  Host:     $(OIM_HOST)"
 	@echo "  Port:     2389 (LDAP) / 2636 (LDAPS)"
 	@echo "  Base DN:  dc=partner,dc=com"
 	@echo "  Admin DN: cn=admin,dc=partner,dc=com"
