@@ -456,7 +456,7 @@ container. See [Networking](#networking).
 ## Licensing
 
 The code in this repository (compose files, Makefile, scripts, templates) is
-provided as-is for development and educational use. **One Identity Manager
+licensed under the [MIT License](LICENSE). **One Identity Manager
 itself is commercial software and is not redistributed here.** You are
 responsible for complying with One Identity's licence terms when running this
 environment.
