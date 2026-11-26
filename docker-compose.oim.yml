@@ -1,3 +1,15 @@
+# `oimhost` is the single name the stack is addressed by, from everywhere:
+#   - Host tools and the browser: hosts file `127.0.0.1 oimhost`
+#     (on Windows + WSL, reached through WSL localhost forwarding).
+#   - WSL shell: same entry, WSL copies the Windows hosts file into /etc/hosts.
+#   - Containers below: `host-gateway`, i.e. the Docker host, which serves the
+#     published ports.
+# Use the published ports everywhere (oimhost,1433 / :8080 / :8182 / :1389).
+# Connection strings that host tools write into the DB (Config Wizard, Sync Editor)
+# then also work inside the containers. See README "Networking".
+x-oimhost: &oimhost
+  - "oimhost:host-gateway"
+
 services:
   mssql:
     image: localhost:5000/oim10-mssql-ready:${MSSQL_IMAGE_TAG:-v01}  # Override via MSSQL_IMAGE_TAG in .env (see Failsafe development in README)
@@ -50,6 +62,7 @@ services:
     environment:
       - CONNSTRING=Data Source=mssql;Initial Catalog=OneIM;User ID=sa;Password=${MSSQL_SA_PASSWORD:-LocalPassword123};TrustServerCertificate=True
       - CONSOLE_LOGLEVEL=Info
+    extra_hosts: *oimhost
     networks:
       - oim-network
     depends_on:
@@ -72,6 +85,7 @@ services:
       - HTTP_USER=${JOBSERVER_HTTP_USER:-admin}
       - HTTP_PWD=${JOBSERVER_HTTP_PWD:-Password123}
       - REQUESTINTERVAL=15
+    extra_hosts: *oimhost
     networks:
       - oim-network
     depends_on:
@@ -94,6 +108,7 @@ services:
       - HTTP_USER=${JOBSERVER_HTTP_USER:-admin}
       - HTTP_PWD=${JOBSERVER_HTTP_PWD:-Password123}
       - REQUESTINTERVAL=15
+    extra_hosts: *oimhost
     networks:
       - oim-network
     depends_on:
@@ -115,6 +130,7 @@ services:
       - ENABLE_RESTAPI=true
       - ENABLE_APPSERVERAPI=true
       - ENABLE_LOGVIEWER=true
+    extra_hosts: *oimhost
     networks:
       - oim-network
     depends_on:
@@ -135,6 +151,7 @@ services:
       - CONSOLE_LOGLEVEL=Info
       #- BASEURL=http://localhost:8182/
       #- APPSERVERCONNSTRING=Url=http://appserver:8080/
+    extra_hosts: *oimhost
     networks:
       - oim-network
     depends_on:
